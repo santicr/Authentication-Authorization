@@ -2,7 +2,7 @@ const express = require('express')
 const mongoose =  require('mongoose')
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
-const expressJwt = require('express-jwt')
+const {expressjwt : expressJwt} = require('express-jwt')
 const User = require('./user')
 
 mongoose.connect('mongodb+srv://admin:admin@cluster0.lslkadu.mongodb.net/auth?retryWrites=true&w=majority')
@@ -10,6 +10,8 @@ mongoose.connect('mongodb+srv://admin:admin@cluster0.lslkadu.mongodb.net/auth?re
 const app = express()
 
 app.use(express.json())
+
+const validateJwt = expressJwt({ secret:'mi-string-secreto', algorithms: ['HS256']})
 
 const signToken = _id => jwt.sign({ _id }, 'mi-string-secreto')
 
@@ -56,6 +58,32 @@ app.post('/login', async (req, res) => {
     catch(err){
         res.status(500).send(err.message)
     }
+})
+
+const findAAU = async (req, res, next) => {
+    try {
+        const user = await User.findById(req.user._id)
+        if(!user){
+            return res.status(401).end()   
+        }
+        req.user = user
+        next()
+    }
+    catch (e){
+        next(e)
+    }
+}
+
+const isAuth = express.Router().use(validateJwt, findAAU)
+
+app.get('/lala', isAuth, (req, res) => {
+    throw new Error('Nuevo error')
+    res.send(req.user)
+})
+
+app.use((err, req, res, next) => {
+    console.log("Error mi nuevo error", err.stack)
+    next(err)
 })
 
 app.listen(3000, () => {
