@@ -34,6 +34,30 @@ app.post('/register', async (req, res) => {
     }
 })
 
+app.post('/login', async (req, res) => {
+    const { body } = req
+
+    try {
+        const user = await User.findOne({ email: body.email })
+        if(!user){
+            res.send('Usario y/o contraseña inválida')
+        }
+        else{
+            const isMatch = await bcrypt.compare(body.password, user.password)
+            if (isMatch){
+                const signed = signToken(user._id)
+                res.status(200).send(signed)
+            }
+            else {
+                res.status(403).send('Usario y/o contraseña inválida')
+            }
+        }
+    }
+    catch(err){
+        res.status(500).send(err.message)
+    }
+})
+
 app.listen(3000, () => {
     console.log("Listening in port 3000")
 })
